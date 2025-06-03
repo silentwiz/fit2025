@@ -16,6 +16,7 @@ def say(msg="Finish", voice=""):
 
 def process_for_k(k, config, sfm_data, db_features, image_id_to_filename, idfeat_to_dbidx_map):
     """k 값을 받아 해당 디렉토리에 모든 JSON 결과물을 저장."""
+    print(f"Clustering [k={k}]")
     k_folder = os.path.join(config['root_dir'], f"k_{k}")
     os.makedirs(k_folder, exist_ok=True)
 
@@ -54,7 +55,7 @@ def process_for_k(k, config, sfm_data, db_features, image_id_to_filename, idfeat
         out_json=desc3d_data_json
     )
 
-    print(f"[k={k}] 저장 완료 → {k_folder}")
+    print(f"[k={k}] 저장 완료 → {k_folder}\n\n")
 
 
 def create_fp_mapping_hybrid_nn(matches_dir, image_id_to_filename, db_features, mapping_json="fp_openmvg_to_opencv.json"):

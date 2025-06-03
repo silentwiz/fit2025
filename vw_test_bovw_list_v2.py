@@ -10,7 +10,45 @@ def plot_result(img_name, top_k, exe_time):
     plt.plot(top_k,exe_time,label = img_name)
     plt.legend()
     plt.show()
+def load_query_centers(sfm_data_json_path, query_img_list):
+    """
+    sfm_data.json에서
+      1) views → (basename → view_id) 맵
+      2) extrinsics → (view_id → center) 맵
+    을 만들어, query_img_list 기반으로 자동으로 center 딕셔너리를 반환.
+    """
+    with open(sfm_data_json_path, 'r') as f:
+        sfm = json.load(f)
 
+    # 1) filename → view_id
+    fname_to_vid = {}
+    for view in sfm.get('views', []):
+        data = view['value']['ptr_wrapper']['data']
+        fn = os.path.basename(data.get('filename', ''))
+        vid = view['key']
+        fname_to_vid[fn] = vid
+
+    # 2) view_id → center
+    vid_to_center = {}
+    # OpenMVG 2.x.x: 'extrinsics' 배열에 pose 정보가 들어있습니다.
+    for pose in sfm.get('extrinsics', []):
+        vid = pose['key']
+        center = pose['value'].get('center')
+        if center is not None:
+            vid_to_center[vid] = center
+
+    # 3) query_img_list 기반으로 최종 매핑 생성
+    query_center_list = {}
+    for rel in query_img_list:
+        bn = os.path.basename(rel)
+        if bn not in fname_to_vid:
+            raise KeyError(f"sfm_data.json의 views에서 '{bn}' 을 찾을 수 없습니다.")
+        vid = fname_to_vid[bn]
+        if vid not in vid_to_center:
+            raise KeyError(f"sfm_data.json의 extrinsics에서 view_id={vid} 의 center를 찾을 수 없습니다.")
+        query_center_list[bn] = vid_to_center[vid]
+
+    return query_center_list
 
 def load_json_data(filepath):
     with open(filepath, 'r') as f:
@@ -104,36 +142,50 @@ def euclidean_distance(p1, p2):
 
 def main():
     query_img_list = [
-        'query/IMG_3341-3342.JPG',
-        'query/IMG_3373-3374.JPG',
-        'query/IMG_3446-3447.JPG',
-        'query/IMG_3566-3567.JPG'
+        'query_1/IMG_2679.jpeg',
+        'query_1/IMG_2701.jpeg',
+        'query_1/IMG_2810.jpeg',
+        'query_1/IMG_2820.jpeg',
+        'query_1/IMG_2879.jpeg',
+        'query_1/IMG_2913.jpeg',
+        'query_1/IMG_2951.jpeg',
+        'query_1/IMG_2962.jpeg',
+        'query_1/IMG_2977.jpeg',
+        'query_1/IMG_2996.jpeg',
+        'query_1/IMG_3043.jpeg',
+        'query_1/IMG_3099.jpeg'
     ]
-    query_key_list = {
-        "IMG_3341-3342.JPG": 73,
-        "IMG_3376-3377.JPG": 102,
-        "IMG_3446-3447.JPG": 172,
-        "IMG_3566-3567.JPG": 275
-    }
-    query_center_list = {
-        "IMG_3341-3342.JPG": [2.44078875924163, -0.7737608908904852, 2.7345119514144469],
-        "IMG_3373-3374.JPG": [2.302423849966294, 1.7738270420756984, -3.907427444640278],
-        "IMG_3446-3447.JPG": [-8.99687790703836, 10.72583146599812, -28.378997768627884],
-        "IMG_3566-3567.JPG": [-41.32418791968729, 4.713223991127274, -25.31351628191326]
-    }
+    
+    # k_num for directories, num : number for clustering
+    k_num = 'k_11000'
 
     root_dir = os.getcwd()
+    sfm_json = os.path.join(root_dir, 'dataset_1', 'output','reconstruction_sequential', 'sfm_data.json')
 
-    codebook_path = os.path.join(root_dir, "codebook.json")
-    bovw_data_path = os.path.join(root_dir, "bovw_data.json")
-    desc3d_data_path = os.path.join(root_dir, "desc3d_data.json")
 
+    codebook_path = os.path.join(root_dir,k_num, "codebook.json")
+    bovw_data_path = os.path.join(root_dir,k_num, "bovw_data.json")
+    desc3d_data_path = os.path.join(root_dir,k_num, "desc3d_data.json")
+    query_center_list = load_query_centers(sfm_json, query_img_list)
     codebook = np.array(load_json_data(codebook_path), dtype=np.float32)
     db_histograms = load_json_data(bovw_data_path)
     desc3d_data = load_json_data(desc3d_data_path)
 
-    resize_ratio = 0.35
-    ori_resize_ratio = 0.4762
+    # img res For SfM 
+    # ::: example ::: original-image-resulution(4032x 3024) -> x0.24 -> for SfM-image-resulution(968x726)
+    
+    #ori_resize_ratio = 0.4762
+    ori_resize_ratio = 0.24
+    #ori_resize_ratio = 1
+
+    # For camera intrinsics
+    # Lower will be fast, but lower accurate
+    # Almost environment, 480p is recommended
+    resize_ratio = 0.35  
+    #resize_ratio = 0.24
+    resize_ratio = 1
+
+    # Just fit for iPhone 13 Pro with ARkit
     fx, fy, cx, cy = 1450.0, 1450.0, 960.0, 720.0
     fx *= resize_ratio
     fy *= resize_ratio
@@ -143,9 +195,10 @@ def main():
                             [0, fy, cy],
                             [0, 0, 1]], dtype=np.float32)
     dist_coeffs = np.zeros((4, 1), dtype=np.float32)
+
     bf = cv2.BFMatcher(cv2.NORM_L2, crossCheck=False)
 
-    result = {}  # 결과 저장
+    result = {} 
     for query_img_path in query_img_list:
         img_name = os.path.basename(query_img_path)
         gt_center = query_center_list[img_name]
@@ -208,7 +261,7 @@ def main():
             top_k_list.append(top_k)
             exe_time_list.append(exe_time)
  
-            print(f"[top_k : {top_k}] : distance err : {error*2:.2f}m \texe time : {endTime - startTime:.4f}sec")
+            print(f"[top_k : {top_k}] : distance err : {error*3.671:.2f}m \texe time : {endTime - startTime:.4f}sec")
         plot_name = img_name + "'s matching time"
         #plot_result(plot_name, top_k_list, exe_time_list)
 

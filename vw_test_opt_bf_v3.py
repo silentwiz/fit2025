@@ -59,10 +59,12 @@ def write_ply(filename, points, colors):
             r, g, b = colors[i]
             f.write(f"{x} {y} {z} {r} {g} {b}\n")
 
-def visualize_camera_pose(filename, camera_position, R, points_3d=None):
-    forward_vector = R.T @ np.array([0, 0, 1], dtype=np.float32).reshape(3,1)
-    direction_end = camera_position + (forward_vector.reshape(3,) * 2.0)
-    pts = [camera_position, direction_end]
+def visualize_camera_pose(img_name, camera_position, R, points_3d=None):
+    #forward_vector = R.T @ np.array([0, 0, 1], dtype=np.float32).reshape(3,1)
+    #direction_end = camera_position + (forward_vector.reshape(3,) * 2.0)
+    #pts = [camera_position, direction_end]
+    filename = img_name + '.ply'
+    pts = [camera_position]
     colors = [[255,0,0], [0,0,255]]
     if points_3d is not None:
         pts.extend(points_3d)
@@ -117,7 +119,7 @@ def extract_sift_query(path, resize_ratio):
     img = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
     if img is None:
         raise FileNotFoundError(f"Cannot load {path}")
-    img = cv2.resize(img, None, fx=resize_ratio, fy=resize_ratio)
+    #img = cv2.resize(img, None, fx=resize_ratio, fy=resize_ratio)
     sift = cv2.SIFT_create()
     kps, desc = sift.detectAndCompute(img, None)
     return kps, desc
@@ -168,20 +170,42 @@ def main():
 
     startTotal = time.perf_counter()
     root_dir = os.getcwd()
-    sfm_json = os.path.join(root_dir, 'dataset', 'output','reconstruction_sequential', 'sfm_data.json')
+    sfm_json = os.path.join(root_dir, 'dataset_1', 'output','reconstruction_sequential', 'sfm_data.json')
 
     # query settings
     query_img_list = [
-        'query/IMG_3342.JPG',
-        'query/IMG_3374.JPG',
-        'query/IMG_3447.JPG',
-        'query/IMG_3567.JPG'
+        'query_1/IMG_2679.jpeg',
+        'query_1/IMG_2701.jpeg',
+        'query_1/IMG_2810.jpeg',
+        'query_1/IMG_2820.jpeg',
+        'query_1/IMG_2879.jpeg',
+        'query_1/IMG_2913.jpeg',
+        'query_1/IMG_2951.jpeg',
+        'query_1/IMG_2962.jpeg',
+        'query_1/IMG_2977.jpeg',
+        'query_1/IMG_2996.jpeg',
+        'query_1/IMG_3043.jpeg',
+        'query_1/IMG_3099.jpeg'
     ]
+    k_num = 'k_100'
    
     query_center_list = load_query_centers(sfm_json, query_img_list)
-    # camera intrinsics
-    resize_ratio     = 0.35
-    ori_resize_ratio = 0.4762
+
+    # img res For SfM 
+    # ::: example ::: original-image-resulution(4032x 3024) -> x0.24 -> for SfM-image-resulution(968x726)
+    
+    #ori_resize_ratio = 0.4762
+    ori_resize_ratio = 0.24
+    #ori_resize_ratio = 1
+
+    # For camera intrinsics
+    # Lower will be fast, but lower accurate
+    # Almost environment, 480p is recommended
+    resize_ratio = 0.35  
+    #resize_ratio = 0.24
+    resize_ratio = 1
+
+    #just fit for iPhone 13 Pro with ARkit
     fx, fy, cx, cy = 1450.0, 1450.0, 960.0, 720.0
     fx *= resize_ratio
     fy *= resize_ratio
@@ -193,8 +217,8 @@ def main():
     dist_coeffs = np.zeros((4,1), dtype=np.float32)
 
     # load VW clusters and codebook
-    cluster_descs, cluster_pts = load_vw_data(os.path.join(root_dir, 'vw_data.json'))
-    codebook = np.array(json.load(open('codebook.json')), dtype=np.float32)
+    cluster_descs, cluster_pts = load_vw_data(os.path.join(root_dir, k_num , 'vw_data.json'))
+    codebook = np.array(json.load(open(k_num +'/codebook.json')), dtype=np.float32)
 
     # build matchers
     codebook_matcher = build_codebook_matcher(codebook)
@@ -238,10 +262,10 @@ def main():
         error   = euclidean_distance(cam_pos, gt_center)
         end = time.perf_counter() 
         #endTotal = time.perf_counter()
-        visualize_camera_pose("pnp.ply", cam_pos, R, obj_pts)
+        visualize_camera_pose(img_name, cam_pos, R, obj_pts)
 
         #print(f"Inliers: {len(inliers)}")
-        print(f"distance err : {error*2:.2f}m \texe time : {end-start:.4f}sec\n total time : {end-startTotal:.4f}\n")
+        print(f"distance err : {error*3.671:.2f}m \texe time : {end-start:.4f}sec\n total time : {end-startTotal:.4f}\n")
 
 if __name__ == '__main__':
     main()
