@@ -81,26 +81,15 @@ def create_fp_mapping_hybrid_nn(matches_dir, image_id_to_filename, db_features, 
         #dists, indices = tree.query(query_pts, k=10)  # 상위 10개 후보 고려
         dists, indices = nn.kneighbors(query_pts,n_neighbors=1)
         #print(f"dists : {dists}")
-        local_map = {}
-        for id_feat, candidates in enumerate(indices):
-            x, y, _, _ = keypoints_info[id_feat]
-            min_dist = float('inf')
-            best_idx = None
-            for db_idx in candidates:
-                kp = db_kps[db_idx]
-                dist = (kp.pt[0] - x)**2 + (kp.pt[1] - y)**2
-                if dist < min_dist:
-                    min_dist = dist
-                    best_idx = db_idx
-            if best_idx is not None:
-                local_map[id_feat] = best_idx
+        local_map = { id_feat: int(indices[id_feat][0]) 
+                      for id_feat in range(len(keypoints_info)) }
+
         idfeat_to_dbidx_map[image_id] = local_map
 
-    # 저장
-    #print(idfeat_to_dbidx_map)
     with open(mapping_json, 'w') as f:
-        print("Try to save mapping")
-        json.dump({str(k): {str(k2): int(v2) for k2, v2 in v.items()} for k, v in idfeat_to_dbidx_map.items()}, f, indent=2)
+        json.dump({str(k): {str(k2): int(v2) for k2, v2 in v.items()} 
+                   for k, v in idfeat_to_dbidx_map.items()}, f, indent=2)
+
     print(f"Mapping saved to {mapping_json}")
     return idfeat_to_dbidx_map
 
@@ -470,7 +459,7 @@ def main():
     
     # 6. OpenMVG와 OpenCV 간의 특징 매핑 생성
     fp_mapping_json = "fp_openmvg_to_opencv.json"
-    idfeat_to_dbidx_map = create_fp_mapping_hybrid_nn(config['dataset_dir'], config['matches_dir'], image_id_to_filename, db_features, mapping_json=fp_mapping_json)
+    idfeat_to_dbidx_map = create_fp_mapping_hybrid_nn(config['matches_dir'], image_id_to_filename, db_features, mapping_json=fp_mapping_json)
     print(f"Feature mapping created for {len(idfeat_to_dbidx_map)} images.")
 
     for k in k_list:
