@@ -6,4 +6,5 @@
 *.svg
 *.bin
 *.json
-
+*.feat
+*.desc
