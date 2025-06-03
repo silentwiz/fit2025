@@ -175,15 +175,15 @@ def main():
     # ::: example ::: original-image-resulution(4032x 3024) -> x0.24 -> for SfM-image-resulution(968x726)
     
     #ori_resize_ratio = 0.4762
-    ori_resize_ratio = 0.24
-    #ori_resize_ratio = 1
+    #ori_resize_ratio = 0.24
+    ori_resize_ratio = 1
 
     # For camera intrinsics
     # Lower will be fast, but lower accurate
     # Almost environment, 480p is recommended
-    resize_ratio = 0.35  
-    #resize_ratio = 0.24
-    resize_ratio = 1
+    #resize_ratio = 0.35  
+    resize_ratio = 0.24
+    #resize_ratio = 1
 
     # Just fit for iPhone 13 Pro with ARkit
     fx, fy, cx, cy = 1450.0, 1450.0, 960.0, 720.0

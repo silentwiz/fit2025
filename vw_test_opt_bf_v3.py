@@ -119,7 +119,7 @@ def extract_sift_query(path, resize_ratio):
     img = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
     if img is None:
         raise FileNotFoundError(f"Cannot load {path}")
-    #img = cv2.resize(img, None, fx=resize_ratio, fy=resize_ratio)
+    img = cv2.resize(img, None, fx=resize_ratio, fy=resize_ratio)
     sift = cv2.SIFT_create()
     kps, desc = sift.detectAndCompute(img, None)
     return kps, desc
@@ -187,23 +187,22 @@ def main():
         'query_1/IMG_3043.jpeg',
         'query_1/IMG_3099.jpeg'
     ]
-    k_num = 'k_100'
+    k_num = 'k_11000'
    
     query_center_list = load_query_centers(sfm_json, query_img_list)
 
     # img res For SfM 
     # ::: example ::: original-image-resulution(4032x 3024) -> x0.24 -> for SfM-image-resulution(968x726)
-    
     #ori_resize_ratio = 0.4762
-    ori_resize_ratio = 0.24
-    #ori_resize_ratio = 1
+    #ori_resize_ratio = 0.24
+    ori_resize_ratio = 1
 
     # For camera intrinsics
     # Lower will be fast, but lower accurate
     # Almost environment, 480p is recommended
-    resize_ratio = 0.35  
-    #resize_ratio = 0.24
-    resize_ratio = 1
+    #resize_ratio = 0.35  
+    resize_ratio = 0.24
+    #resize_ratio = 1
 
     #just fit for iPhone 13 Pro with ARkit
     fx, fy, cx, cy = 1450.0, 1450.0, 960.0, 720.0
