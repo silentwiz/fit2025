@@ -16,7 +16,6 @@ def say(msg="Finish", voice=""):
 
 def process_for_k(k, config, sfm_data, db_features, image_id_to_filename, idfeat_to_dbidx_map):
     """k 값을 받아 해당 디렉토리에 모든 JSON 결과물을 저장."""
-    print(f"Clustering [k={k}]")
     k_folder = os.path.join(config['root_dir'], f"k_{k}")
     os.makedirs(k_folder, exist_ok=True)
 
@@ -55,9 +54,101 @@ def process_for_k(k, config, sfm_data, db_features, image_id_to_filename, idfeat
         out_json=desc3d_data_json
     )
 
-    print(f"[k={k}] 저장 완료 → {k_folder}\n\n")
+    print(f"[k={k}] 저장 완료 → {k_folder}")
 
 
+
+'''
+brute-force
+slow but most accurate
+'''
+def create_fp_mapping(matches_dir, image_id_to_filename, db_features, mapping_json="fp_openmvg_to_opencv.json"):
+    if os.path.exists(mapping_json):
+        print(f"{mapping_json} already exists, loading mapping.")
+        return load_fp_mapping_json(mapping_json)
+
+    print("Creating feature mapping between OpenMVG and OpenCV features...")
+    idfeat_to_dbidx_map = {}
+    for image_id, img_path in tqdm(image_id_to_filename.items()):
+        feat_name = get_feat_filename_from_image(img_path)
+        feat_path = os.path.join(matches_dir, feat_name)
+        keypoints_info = load_feat_file(feat_path)
+        db_kps = db_features[image_id]['keypoints']
+        local_map = {}
+        for id_feat, (x, y, sc, ori) in enumerate(keypoints_info):
+            min_dist = float('inf')
+            best_idx = None
+            for db_idx, kp in enumerate(db_kps):
+                dist = (kp.pt[0] - x)**2 + (kp.pt[1] - y)**2
+                if dist < min_dist:
+                    min_dist = dist
+                    best_idx = db_idx
+            if best_idx is not None:
+                local_map[id_feat] = best_idx
+        idfeat_to_dbidx_map[image_id] = local_map
+    # 매핑 정보를 JSON으로 저장
+    with open(mapping_json, 'w') as f:
+        json.dump({str(k): {str(k2): v2 for k2, v2 in v.items()} for k, v in idfeat_to_dbidx_map.items()}, f, indent=2)
+    print(f"Mapping saved to {mapping_json}")
+    return idfeat_to_dbidx_map    
+
+
+'''
+KD-tree
+faster but accurate is lower then brute-force
+'''
+def create_fp_mapping_fast(matches_dir, image_id_to_filename, db_features, mapping_json="fp_openmvg_to_opencv.json"):
+    
+    if os.path.exists(mapping_json):
+        print(f"{mapping_json} already exists, loading mapping.")
+        with open(mapping_json, 'r') as f:
+            return json.load(f)
+
+    print("Creating feature mapping OpenMVG <-> OpenCV features (fast KD-Tree)")
+    idfeat_to_dbidx_map = {}
+
+    for image_id, img_path in tqdm(image_id_to_filename.items()):
+        feat_name = os.path.splitext(os.path.basename(img_path))[0] + ".feat"
+        feat_path = os.path.join(matches_dir, feat_name)
+        keypoints = load_feat_file(feat_path)
+        if not keypoints:
+            idfeat_to_dbidx_map[image_id] = {}
+            continue
+
+        db_kps = db_features[image_id]['keypoints']
+        pts_db = np.array([kp.pt for kp in db_kps], dtype=np.float32)
+        tree = KDTree(pts_db)
+
+        pts_q = np.array([[x, y] for x, y, _, _ in keypoints], dtype=np.float32)
+        # 5) 한 개의 가장 가까운 이웃 색인(idx) 찾기
+        dist, idx = tree.query(pts_q, k=1)  # dist.shape=(N,1), idx.shape=(N,1)
+
+        # 6) 매핑 딕셔너리 생성
+        local_map = {str(i): int(idx[i,0]) for i in range(len(keypoints))}
+        idfeat_to_dbidx_map[image_id] = local_map
+
+    # 7) JSON으로 저장
+    # JSON으로 저장 (키는 str)
+    with open(mapping_json, 'w') as f:
+        json.dump({str(k): v for k, v in idfeat_to_dbidx_map.items()}, f, indent=2)
+    print(f"Mapping saved to {mapping_json}")
+
+    # 다시 불러와서 키를 int로 변환
+    raw = json.load(open(mapping_json, 'r'))
+    int_map = {
+        int(img_id): {        # 문자열 키 → 정수 키
+            int(feat_id): db_idx
+            for feat_id, db_idx in featmap.items()
+        }
+        for img_id, featmap in raw.items()
+    }
+    return int_map
+
+
+
+'''
+???
+'''
 def create_fp_mapping_hybrid_nn(matches_dir, image_id_to_filename, db_features, mapping_json="fp_openmvg_to_opencv.json"):
     if os.path.exists(mapping_json):
         print(f"{mapping_json} already exists, loading mapping.")
@@ -99,7 +190,7 @@ def setup_folders():
     current_dir = os.getcwd()
     root_dir = current_dir
     
-    dataset_dir = os.path.join(root_dir, 'dataset_1')
+    dataset_dir = os.path.join(root_dir, 'dataset')
     output_desc_dir = os.path.join(dataset_dir, 'desc_output')
     
     if not os.path.exists(dataset_dir):
@@ -460,7 +551,7 @@ def main():
     
     # 6. OpenMVG와 OpenCV 간의 특징 매핑 생성
     fp_mapping_json = "fp_openmvg_to_opencv.json"
-    idfeat_to_dbidx_map = create_fp_mapping_hybrid_nn(config['matches_dir'], image_id_to_filename, db_features, mapping_json=fp_mapping_json)
+    idfeat_to_dbidx_map = create_fp_mapping(config['matches_dir'], image_id_to_filename, db_features, mapping_json=fp_mapping_json)
     print(f"Feature mapping created for {len(idfeat_to_dbidx_map)} images.")
 
     for k in k_list:
