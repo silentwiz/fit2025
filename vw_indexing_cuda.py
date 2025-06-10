@@ -7,18 +7,96 @@ import numpy as np
 import cv2
 from tqdm import tqdm
 from sklearn.cluster import KMeans
+from sklearn.neighbors import KDTree
+from sklearn.neighbors import NearestNeighbors
+from cuml.cluster import KMeans as cumlKMeans
+
+def setup_folders():
+    current_dir = os.getcwd()
+    root_dir = current_dir
+    
+    dataset_dir = os.path.join(root_dir, 'dataset')
+    output_desc_dir = os.path.join(dataset_dir, 'desc_output')
+    
+    if not os.path.exists(dataset_dir):
+        print(f"Error: {dataset_dir} not found.")
+        sys.exit(1)
+    if not os.path.exists(output_desc_dir):
+        os.mkdir(output_desc_dir)
+    
+    # OpenMVG 실행 파일 및 카메라 센서 폭 파일 경로
+    OPENMVG_SFM_BIN = "/home/silentwiz/openMVG_Build/Linux-x86_64-RELEASE"
+    CAMERA_SENSOR_WIDTH_DIRECTORY = "/home/silentwiz/develop/fit2025/sensor_width_camera_database.txt"
+        
+    output_dir = os.path.join(dataset_dir, "output")
+    matches_dir = os.path.join(output_dir, "matches")
+    reconstruction_dir = os.path.join(output_dir, "reconstruction_sequential")
+    
+    return {
+        'root_dir': root_dir,
+        'dataset_dir': dataset_dir,
+        'output_desc_dir': output_desc_dir,
+        'output_dir': output_dir,
+        'matches_dir': matches_dir,
+        'reconstruction_dir': reconstruction_dir,
+        'OPENMVG_SFM_BIN': OPENMVG_SFM_BIN,
+        'CAMERA_SENSOR_WIDTH_DIRECTORY': CAMERA_SENSOR_WIDTH_DIRECTORY
+    }
+
+
 
 def say(msg="Finish", voice=""):
     os.system(f'say -v {voice} {msg}')
 
+def process_for_k(k, config, sfm_data, db_features, image_id_to_filename, idfeat_to_dbidx_map):
+    """k 값을 받아 해당 디렉토리에 모든 JSON 결과물을 저장."""
+    k_folder = os.path.join(config['root_dir'], f"k_{k}")
+    os.makedirs(k_folder, exist_ok=True)
 
-from sklearn.neighbors import KDTree
-import numpy as np
-import json
-import os
-from tqdm import tqdm
+    # 1) codebook
+    codebook_json = os.path.join(k_folder, "codebook.json")
+    kmeans = create_kmeans_and_assign(
+        db_features,
+        codebook_json=codebook_json,
+        n_clusters=k,
+        random_state=24
+    )
 
-def create_fp_mapping(dataset_dir, matches_dir, image_id_to_filename, db_features, mapping_json="fp_openmvg_to_opencv.json"):
+    # 2) vw_data
+    vw_data_json = os.path.join(k_folder, "vw_data.json")
+    vw_data = indexing_vw_3d_and_desc_optimized(
+        sfm_data,
+        db_features,
+        idfeat_to_dbidx_map,
+        vw_data_json=vw_data_json
+    )
+
+    # 3) bovw_data
+    bovw_data_json = os.path.join(k_folder, "bovw_data.json")
+    create_bovw_data(
+        db_features,
+        kmeans,
+        out_json=bovw_data_json
+    )
+
+    # 4) desc3d_data
+    desc3d_data_json = os.path.join(k_folder, "desc3d_data.json")
+    create_desc3d_data(
+        sfm_data,
+        db_features,
+        idfeat_to_dbidx_map,
+        out_json=desc3d_data_json
+    )
+
+    print(f"[k={k}] 저장 완료 → {k_folder}")
+
+
+
+'''
+brute-force
+slow but most accurate
+'''
+def create_fp_mapping(matches_dir, image_id_to_filename, db_features, mapping_json="fp_openmvg_to_opencv.json"):
     if os.path.exists(mapping_json):
         print(f"{mapping_json} already exists, loading mapping.")
         return load_fp_mapping_json(mapping_json)
@@ -46,13 +124,15 @@ def create_fp_mapping(dataset_dir, matches_dir, image_id_to_filename, db_feature
     with open(mapping_json, 'w') as f:
         json.dump({str(k): {str(k2): v2 for k2, v2 in v.items()} for k, v in idfeat_to_dbidx_map.items()}, f, indent=2)
     print(f"Mapping saved to {mapping_json}")
-    return idfeat_to_dbidx_map
+    return idfeat_to_dbidx_map    
 
-def create_fp_mapping_fast(dataset_dir,
-                           matches_dir,
-                           image_id_to_filename,
-                           db_features,
-                           mapping_json="fp_openmvg_to_opencv.json"):
+
+'''
+KD-tree
+faster but accurate is lower then brute-force
+'''
+def create_fp_mapping_fast(matches_dir, image_id_to_filename, db_features, mapping_json="fp_openmvg_to_opencv.json"):
+    
     if os.path.exists(mapping_json):
         print(f"{mapping_json} already exists, loading mapping.")
         with open(mapping_json, 'r') as f:
@@ -99,37 +179,46 @@ def create_fp_mapping_fast(dataset_dir,
     return int_map
 
 
-def setup_folders():
-    current_dir = os.getcwd()
-    root_dir = current_dir
-    
-    dataset_dir = os.path.join(root_dir, 'dataset')
-    output_desc_dir = os.path.join(dataset_dir, 'desc_output')
-    
-    if not os.path.exists(dataset_dir):
-        print(f"Error: {dataset_dir} not found.")
-        sys.exit(1)
-    if not os.path.exists(output_desc_dir):
-        os.mkdir(output_desc_dir)
-    
-    # OpenMVG 실행 파일 및 카메라 센서 폭 파일 경로
-    OPENMVG_SFM_BIN = "/Users/juwonhyun/openMVG_Build/Darwin-arm64-RELEASE"
-    CAMERA_SENSOR_WIDTH_DIRECTORY = "/Users/juwonhyun/sensor_width_camera_database.txt"
-        
-    output_dir = os.path.join(dataset_dir, "output")
-    matches_dir = os.path.join(output_dir, "matches")
-    reconstruction_dir = os.path.join(output_dir, "reconstruction_sequential")
-    
-    return {
-        'root_dir': root_dir,
-        'dataset_dir': dataset_dir,
-        'output_desc_dir': output_desc_dir,
-        'output_dir': output_dir,
-        'matches_dir': matches_dir,
-        'reconstruction_dir': reconstruction_dir,
-        'OPENMVG_SFM_BIN': OPENMVG_SFM_BIN,
-        'CAMERA_SENSOR_WIDTH_DIRECTORY': CAMERA_SENSOR_WIDTH_DIRECTORY
-    }
+
+'''
+???
+'''
+def create_fp_mapping_hybrid_nn(matches_dir, image_id_to_filename, db_features, mapping_json="fp_openmvg_to_opencv.json"):
+    if os.path.exists(mapping_json):
+        print(f"{mapping_json} already exists, loading mapping.")
+        return load_fp_mapping_json(mapping_json)
+
+    print("Creating feature mapping (brute force)...")
+    idfeat_to_dbidx_map = {}
+
+    for image_id, img_path in tqdm(image_id_to_filename.items()):
+        feat_name = get_feat_filename_from_image(img_path)
+        feat_path = os.path.join(matches_dir, feat_name)
+        keypoints_info = load_feat_file(feat_path)
+        db_kps = db_features[image_id]['keypoints']
+        pts_db = np.array([kp.pt for kp in db_kps], dtype=np.float32)
+
+        if len(pts_db) == 0 or len(keypoints_info) == 0:
+            idfeat_to_dbidx_map[image_id] = {}
+            continue
+
+        nn = NearestNeighbors(n_neighbors=2,algorithm='brute').fit(pts_db)
+        query_pts = np.array([[x, y] for x, y, _, _ in keypoints_info], dtype=np.float32)
+        #dists, indices = tree.query(query_pts, k=10)  # 상위 10개 후보 고려
+        dists, indices = nn.kneighbors(query_pts,n_neighbors=1)
+        #print(f"dists : {dists}")
+        local_map = { id_feat: int(indices[id_feat][0]) 
+                      for id_feat in range(len(keypoints_info)) }
+
+        idfeat_to_dbidx_map[image_id] = local_map
+
+    with open(mapping_json, 'w') as f:
+        json.dump({str(k): {str(k2): int(v2) for k2, v2 in v.items()} 
+                   for k, v in idfeat_to_dbidx_map.items()}, f, indent=2)
+
+    print(f"Mapping saved to {mapping_json}")
+    return idfeat_to_dbidx_map
+
 
 def run_sfm(config):
     sfm_data_bin = os.path.join(config['reconstruction_dir'], "sfm_data.bin")
@@ -305,7 +394,7 @@ def create_kmeans_and_assign(db_features, codebook_json="codebook.json", n_clust
         return None
     all_desc = np.vstack(all_desc)
     print(f"Total descriptor shape: {all_desc.shape}")
-    kmeans = KMeans(n_clusters=n_clusters, init="random",  random_state=random_state)
+    kmeans = cumlKMeans(n_clusters=n_clusters, init="random",  random_state=random_state)
     kmeans.fit(all_desc)
     codebook = kmeans.cluster_centers_.astype(np.float32)
     with open(codebook_json, 'w') as f:
@@ -443,6 +532,9 @@ def main():
     # 1. 환경 설정 및 폴더 생성
     config = setup_folders()
     print(f"Configuration: {config}")
+    k_list = [50, 100, 300, 500, 700, 1000, 1500, 2000, 5000, 7000, 9000, 11000, 13000, 15000, 17000, 19000, 21000, 23000, 24000, 26000, 28000, 30000, 32000, 34000, 36000,
+              38000, 40000, 42000, 44000, 46000, 48000, 50000]
+
     
     # 2. OpenMVG SfM 수행
     run_sfm(config)
@@ -461,33 +553,19 @@ def main():
     
     # 6. OpenMVG와 OpenCV 간의 특징 매핑 생성
     fp_mapping_json = "fp_openmvg_to_opencv.json"
-    idfeat_to_dbidx_map = create_fp_mapping_fast(config['dataset_dir'], config['matches_dir'], image_id_to_filename, db_features, mapping_json=fp_mapping_json)
+    idfeat_to_dbidx_map = create_fp_mapping(config['matches_dir'], image_id_to_filename, db_features, mapping_json=fp_mapping_json)
     print(f"Feature mapping created for {len(idfeat_to_dbidx_map)} images.")
-    
-    # 7. KMeans를 사용한 코드북 생성 및 각 이미지에 대해 visual words 할당
-    codebook_json = "codebook.json"
-    say(msg="start create codebook")
-    kmeans = create_kmeans_and_assign(db_features, codebook_json=codebook_json, n_clusters=1000, random_state=24)
-    say(msg="created codebook")
-    
-    # 8. VW 기반: 3D 포인트와 디스크립터 매핑 인덱싱
-    vw_data_json = "vw_data.json"
-    vw_data = indexing_vw_3d_and_desc_optimized(sfm_data, db_features, idfeat_to_dbidx_map, vw_data_json=vw_data_json)
-    
-    # === 추가 부분: BoVW 히스토그램 및 2D–3D 대응 데이터 생성 ===
-    # (A) 이미지별 BoVW 히스토그램 생성
-    bovw_data_json = "bovw_data.json"
-    bovw_data = create_bovw_data(db_features, kmeans, out_json=bovw_data_json)
-    
-    # (B) BoVW 매칭 시 사용할, 이미지별 (디스크립터, 3D 포인트) 데이터 생성
-    desc3d_data_json = "desc3d_data.json"
-    desc3d_data = create_desc3d_data(sfm_data, db_features, idfeat_to_dbidx_map, out_json=desc3d_data_json)
-    
-    print("\nAll data generation complete.")
-    print(f" - Codebook: {codebook_json}")
-    print(f" - VW data: {vw_data_json}")
-    print(f" - BoVW histogram data: {bovw_data_json}")
-    print(f" - desc3d data: {desc3d_data_json}")
+
+    for k in k_list:
+        process_for_k(
+            k,
+            config,
+            sfm_data,
+            db_features,
+            image_id_to_filename,
+            idfeat_to_dbidx_map
+        )
+
 
 if __name__ == "__main__":
     main()
