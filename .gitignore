@@ -9,3 +9,4 @@
 *.feat
 *.desc
 __pycache__
+.DS_Store
