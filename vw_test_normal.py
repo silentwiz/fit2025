@@ -192,7 +192,7 @@ def main():
     query_center_list = load_query_centers(sfm_json, query_img_list)
 
     # image resolution for 1440p(1920x1440) for ARkit currentFrame(camera intrinsics)
-
+    # EXAMPLE 4032x3024 -> x0.4762 -> 1920.0384x1440.0288 (=1920x1440)
     #ori_resize_ratio = 0.2118
     #ori_resize_ratio = 0.24
     ori_resize_ratio = 0.4762
@@ -201,7 +201,7 @@ def main():
 
     # For camera intrinsics
     # orizinal camera_matrix  x (image resolution For PnP)
-    # example 1920x1440 -> x0.35 ->   672x504
+    # EXAMPLE 1920x1440 -> x0.35 ->  672x504
 
     #resize_ratio = 0.2118
     #resize_ratio = 0.24

@@ -172,7 +172,7 @@ def main():
     desc3d_data = load_json_data(desc3d_data_path)
 
     # image resolution for 1440p(1920x1440) for ARkit currentFrame(camera intrinsics)
-
+    # EXAMPLE 4032x3024 -> x0.4762 -> 1920.0384x1440.0288 (=1920x1440)
     #ori_resize_ratio = 0.2118
     #ori_resize_ratio = 0.24
     ori_resize_ratio = 0.4762
