@@ -187,17 +187,18 @@ def main():
         'query_1/IMG_3043.jpeg',
         'query_1/IMG_3099.jpeg'
     ]
-    k_num = 'k_11000'
-   
+    k_num = 'k_11000' #num is clustering number
+    err_correction = 3.671
+    #err_correction = 2
+
     query_center_list = load_query_centers(sfm_json, query_img_list)
 
     # image resolution for 1440p(1920x1440) for ARkit currentFrame(camera intrinsics)
-    # EXAMPLE 4032x3024 -> x0.4762 -> 1920.0384x1440.0288 (=1920x1440)
-    #ori_resize_ratio = 0.2118
-    #ori_resize_ratio = 0.24
+    # EXAMPLE1 4032x3024 -> x0.4762 -> 1920.0384x1440.0288 (=1920x1440)
+    # EXAMPLE2 968x726 -> x1.98347 -> 1919.999x1439.999(=1920x1440)
     ori_resize_ratio = 0.4762
-    #ori_resize_ratio = 0.66116
     #ori_resize_ratio = 1
+    #ori_resize_ratio = 1.98347
 
     # For camera intrinsics
     # orizinal camera_matrix  x (image resolution For PnP)
@@ -268,7 +269,7 @@ def main():
         visualize_camera_pose(img_name, cam_pos, R, obj_pts)
 
         #print(f"Inliers: {len(inliers)}")
-        print(f"distance err : {error*3.671:.2f}m \texe time : {end-start:.4f}sec\n total time : {end-startTotal:.4f}\n")
+        print(f"distance err : {error*err_correction:.2f}m \texe time : {end-start:.4f}sec\n total time : {end-startTotal:.4f}\n")
 
 if __name__ == '__main__':
     main()

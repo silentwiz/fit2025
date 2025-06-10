@@ -157,8 +157,10 @@ def main():
     ]
     
     # k_num for directories, num : number for clustering
-    k_num = 'k_11000'
-
+    k_num = 'k_11000' #num is clustering number
+    err_correction = 3.671
+    #err_correction = 2
+    
     root_dir = os.getcwd()
     sfm_json = os.path.join(root_dir, 'dataset_1', 'output','reconstruction_sequential', 'sfm_data.json')
 
@@ -172,12 +174,11 @@ def main():
     desc3d_data = load_json_data(desc3d_data_path)
 
     # image resolution for 1440p(1920x1440) for ARkit currentFrame(camera intrinsics)
-    # EXAMPLE 4032x3024 -> x0.4762 -> 1920.0384x1440.0288 (=1920x1440)
-    #ori_resize_ratio = 0.2118
-    #ori_resize_ratio = 0.24
+    # EXAMPLE1 4032x3024 -> x0.4762 -> 1920.0384x1440.0288 (=1920x1440)
+    # EXAMPLE2 968x726 -> x1.98347 -> 1919.999x1439.999(=1920x1440)
     ori_resize_ratio = 0.4762
-    #ori_resize_ratio = 0.66116
     #ori_resize_ratio = 1
+    #ori_resize_ratio = 1.98347
 
     # For camera intrinsics
     # orizinal camera_matrix  x (image resolution For PnP)
@@ -263,7 +264,7 @@ def main():
             top_k_list.append(top_k)
             exe_time_list.append(exe_time)
  
-            print(f"[top_k : {top_k}] : distance err : {error*3.671:.2f}m \texe time : {endTime - startTime:.4f}sec")
+            print(f"[top_k : {top_k}] : distance err : {error*err_correction:.2f}m \texe time : {endTime - startTime:.4f}sec")
         plot_name = img_name + "'s matching time"
         #plot_result(plot_name, top_k_list, exe_time_list)
 
