@@ -171,31 +171,33 @@ def main():
     db_histograms = load_json_data(bovw_data_path)
     desc3d_data = load_json_data(desc3d_data_path)
 
-    # img res For SfM 
-    # ::: example ::: original-image-resulution(4032x 3024) -> x0.24 -> for SfM-image-resulution(968x726)
-    
-    #ori_resize_ratio = 0.4762
+    # image resolution for 1440p(1920x1440) for ARkit currentFrame(camera intrinsics)
+
+    #ori_resize_ratio = 0.2118
     #ori_resize_ratio = 0.24
-    ori_resize_ratio = 1
+    ori_resize_ratio = 0.4762
+    #ori_resize_ratio = 0.66116
+    #ori_resize_ratio = 1
 
     # For camera intrinsics
-    # Lower will be fast, but lower accurate
-    # Almost environment, 480p is recommended
-    #resize_ratio = 0.35  
-    resize_ratio = 0.24
+    # orizinal camera_matrix  x (image resolution For PnP)
+    # example 1920x1440 -> x0.35 ->   672x504
+
+    #resize_ratio = 0.2118
+    #resize_ratio = 0.24
+    resize_ratio = 0.35
     #resize_ratio = 1
 
-    # Just fit for iPhone 13 Pro with ARkit
+    # This data is just fit for iPhone 13 Pro with ARkit
     fx, fy, cx, cy = 1450.0, 1450.0, 960.0, 720.0
     fx *= resize_ratio
     fy *= resize_ratio
     cx *= resize_ratio
     cy *= resize_ratio
-    camera_matrix = np.array([[fx, 0, cx],
-                            [0, fy, cy],
-                            [0, 0, 1]], dtype=np.float32)
-    dist_coeffs = np.zeros((4, 1), dtype=np.float32)
-
+    camera_matrix = np.array([[fx,0,cx],
+                              [0,fy,cy],
+                              [0,0,1]], dtype=np.float32)
+    dist_coeffs = np.zeros((4,1), dtype=np.float32)
     bf = cv2.BFMatcher(cv2.NORM_L2, crossCheck=False)
 
     result = {} 

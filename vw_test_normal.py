@@ -191,20 +191,24 @@ def main():
    
     query_center_list = load_query_centers(sfm_json, query_img_list)
 
-    # img res For SfM 
-    # ::: example ::: original-image-resulution(4032x 3024) -> x0.24 -> for SfM-image-resulution(968x726)
-    #ori_resize_ratio = 0.4762
+    # image resolution for 1440p(1920x1440) for ARkit currentFrame(camera intrinsics)
+
+    #ori_resize_ratio = 0.2118
     #ori_resize_ratio = 0.24
-    ori_resize_ratio = 1
+    ori_resize_ratio = 0.4762
+    #ori_resize_ratio = 0.66116
+    #ori_resize_ratio = 1
 
     # For camera intrinsics
-    # Lower will be fast, but lower accurate
-    # Almost environment, 480p is recommended
-    #resize_ratio = 0.35  
-    resize_ratio = 0.24
+    # orizinal camera_matrix  x (image resolution For PnP)
+    # example 1920x1440 -> x0.35 ->   672x504
+
+    #resize_ratio = 0.2118
+    #resize_ratio = 0.24
+    resize_ratio = 0.35
     #resize_ratio = 1
 
-    #just fit for iPhone 13 Pro with ARkit
+    # This data is just fit for iPhone 13 Pro with ARkit
     fx, fy, cx, cy = 1450.0, 1450.0, 960.0, 720.0
     fx *= resize_ratio
     fy *= resize_ratio
