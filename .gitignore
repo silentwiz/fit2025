@@ -10,3 +10,4 @@
 *.desc
 __pycache__
 .DS_Store
+.png
