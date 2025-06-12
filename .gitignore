@@ -10,5 +10,5 @@
 *.desc
 __pycache__
 .DS_Store
-.png
+*.png
 *Zone.Identifier

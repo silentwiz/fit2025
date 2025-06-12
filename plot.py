@@ -1,4 +1,12 @@
 import matplotlib.pyplot as plt
+import numpy as np
+
+                                    ######################
+                                    #### univ dataset ####
+                                    ######################
+
+ks = [100, 300, 500, 700, 1000, 1500, 2000]
+
 '''
 # univ bf window
 # ====== [IMG_3342.JPG] ========
@@ -43,7 +51,22 @@ execution_times = [ 0.1916, 0.2691, 0.1813, 0.2390, 0.2485, 0.2024]
 # 0.222 sec
 '''
 
+'''
+#univ distance_error
+proposal =  [0.19, 0.22, 0.16, 0.17, 0.15, 0.16, 0.16]
+image_retrieval  =  [0.216, 0.1233, 0.12,  0.140,0,0,0.1333 ]
 
+'''
+'''
+#univ execution times
+proposal = [0.3288, 0.4581, 0.3497, 0.3393, 0.3382, 0.3600, 0.4419]
+image_retrieval = [0.487, 0.5029, 0.466, 0.497,0,0,0.5423 ]
+'''
+
+
+                                    ######################
+                                    #### park dataset ####
+                                    ######################
 '''
 # park bf window
 #==== image[IMG_2977.jpeg] ====
@@ -86,7 +109,40 @@ execution_times = [0.2652, 0.2917, 0.3362, 0.3784, 0.4114, 0.4540]
 #0.356 sec
 '''
 
+#park distance error
+proposal =  [0.41, 0.41, 0.44, 0.41, 0.40, 0.42, 0.40]
+image_retrieval  = [ 0, 0, 0.423, 0.420, 0.413, 0, 0]
 
+
+'''
+#park executation time
+proposal =  [0.1926, 0.1860, 0.2017, 0.2180, 0.2136, 0.2996, 0.2428]
+image_retrieval  =  [ 0, 0, 0.205, 0.172, 0.167, 0, 0]
+'''
+
+
+
+'''
+                ### func for distance error and execution times###
+for i, dis_e in enumerate(distance_errors):
+    if dis_e == 0:
+        distance_errors[i] = np.nan
+
+for i, exe_t in enumerate(execution_times):
+    if exe_t == 0:
+        execution_times[i] = np.nan
+'''
+
+for i, dis_e in enumerate(proposal):
+    if dis_e == 0:
+        proposal[i] = np.nan
+
+for i, exe_t in enumerate(image_retrieval):
+    if exe_t == 0:
+        image_retrieval[i] = np.nan
+
+
+'''
 plt.figure()
 plt.plot(ks, distance_errors, marker='o', color='red', label='Distance error (m)')
 plt.plot(ks, execution_times, marker='x', color='blue', label='Execution time (sec)')
@@ -97,6 +153,21 @@ plt.legend()
 plt.grid(True)
 plt.savefig('./plot.png', dpi=300, bbox_inches='tight')
 #plt.show()
+'''
+
+
+plt.figure()
+plt.plot(ks, proposal, marker='o', color='red', label='Proposal')
+plt.plot(ks, image_retrieval, marker='x', color='blue', label='Image Retribe')
+plt.xlabel('clustering number')
+plt.ylabel('Distansce error (m)')
+#plt.ylabel('Execution times (sec)')
+plt.xticks(ks)
+plt.legend()
+plt.grid(True)
+plt.savefig('./plot.png', dpi=300, bbox_inches='tight')
+#plt.show()
+
 
 '''
 plt.figure()
