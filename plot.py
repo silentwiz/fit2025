@@ -5,7 +5,10 @@ import numpy as np
                                     #### univ dataset ####
                                     ######################
 
-ks = [100, 300, 500, 700, 1000, 1500, 2000]
+#ks = [100, 300, 500, 700, 1000, 1500, 2000]
+
+ks = [ 5000, 7000, 9000, 11000, 13000, 15000]
+
 
 '''
 # univ bf window
@@ -108,17 +111,17 @@ execution_times = [0.2652, 0.2917, 0.3362, 0.3784, 0.4114, 0.4540]
 #0.415 m
 #0.356 sec
 '''
-
+'''
 #park distance error
-proposal =  [0.41, 0.41, 0.44, 0.41, 0.40, 0.42, 0.40]
-image_retrieval  = [ 0, 0, 0.423, 0.420, 0.413, 0, 0]
-
-
+proposal =  [ 0.43, 0.41, 0.40, 0.41, 0.41, 0.42]
+image_retrieval  = [0.4125, 0.4217, 0.4150, 0.4117, 0.4100, 0.4183]
 '''
+
+
 #park executation time
-proposal =  [0.1926, 0.1860, 0.2017, 0.2180, 0.2136, 0.2996, 0.2428]
-image_retrieval  =  [ 0, 0, 0.205, 0.172, 0.167, 0, 0]
-'''
+proposal =  [ 0.1916, 0.2691, 0.1813, 0.2390, 0.2485, 0.2024]
+image_retrieval  =  [0.2652, 0.2917, 0.3362, 0.3784, 0.4114, 0.4540]
+
 
 
 
@@ -160,8 +163,8 @@ plt.figure()
 plt.plot(ks, proposal, marker='o', color='red', label='Proposal')
 plt.plot(ks, image_retrieval, marker='x', color='blue', label='Image Retribe')
 plt.xlabel('clustering number')
-plt.ylabel('Distansce error (m)')
-#plt.ylabel('Execution times (sec)')
+#plt.ylabel('Distansce error (m)')
+plt.ylabel('Execution times (sec)')
 plt.xticks(ks)
 plt.legend()
 plt.grid(True)
