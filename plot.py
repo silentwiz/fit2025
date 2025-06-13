@@ -5,8 +5,10 @@ import numpy as np
                                     #### univ dataset ####
                                     ######################
 
-#ks = [100, 300, 500, 700, 1000, 1500, 2000]
+# for 100~2000 cluster
+ks = [100, 300, 500, 700, 1000, 1500, 2000]
 
+# for 5000 ~~> cluster
 ks = [ 5000, 7000, 9000, 11000, 13000, 15000]
 
 
@@ -54,12 +56,12 @@ execution_times = [ 0.1916, 0.2691, 0.1813, 0.2390, 0.2485, 0.2024]
 # 0.222 sec
 '''
 
-'''
+
 #univ distance_error
 proposal =  [0.19, 0.22, 0.16, 0.17, 0.15, 0.16, 0.16]
 image_retrieval  =  [0.216, 0.1233, 0.12,  0.140,0,0,0.1333 ]
 
-'''
+
 '''
 #univ execution times
 proposal = [0.3288, 0.4581, 0.3497, 0.3393, 0.3382, 0.3600, 0.4419]
@@ -111,6 +113,8 @@ execution_times = [0.2652, 0.2917, 0.3362, 0.3784, 0.4114, 0.4540]
 #0.415 m
 #0.356 sec
 '''
+
+
 '''
 #park distance error
 proposal =  [ 0.43, 0.41, 0.40, 0.41, 0.41, 0.42]
@@ -121,7 +125,6 @@ image_retrieval  = [0.4125, 0.4217, 0.4150, 0.4117, 0.4100, 0.4183]
 #park executation time
 proposal =  [ 0.1916, 0.2691, 0.1813, 0.2390, 0.2485, 0.2024]
 image_retrieval  =  [0.2652, 0.2917, 0.3362, 0.3784, 0.4114, 0.4540]
-
 
 
 
@@ -152,7 +155,7 @@ plt.plot(ks, execution_times, marker='x', color='blue', label='Execution time (s
 plt.xlabel('clustering number')
 plt.ylabel('Value')
 plt.xticks(ks)
-plt.legend()
+plt.legend(fontsize=17)
 plt.grid(True)
 plt.savefig('./plot.png', dpi=300, bbox_inches='tight')
 #plt.show()
@@ -162,11 +165,12 @@ plt.savefig('./plot.png', dpi=300, bbox_inches='tight')
 plt.figure()
 plt.plot(ks, proposal, marker='o', color='red', label='Proposal')
 plt.plot(ks, image_retrieval, marker='x', color='blue', label='Image Retribe')
-plt.xlabel('clustering number')
-#plt.ylabel('Distansce error (m)')
-plt.ylabel('Execution times (sec)')
-plt.xticks(ks)
-plt.legend()
+plt.xlabel('Clustering number', fontsize=20)
+plt.ylabel('Distansce error (m)', fontsize=20)
+#plt.ylabel('Execution times (sec)', fontsize=20)
+plt.xticks(ks, fontsize=15)
+plt.yticks(fontsize=15)
+plt.legend(fontsize=20)
 plt.grid(True)
 plt.savefig('./plot.png', dpi=300, bbox_inches='tight')
 #plt.show()
@@ -176,10 +180,10 @@ plt.savefig('./plot.png', dpi=300, bbox_inches='tight')
 plt.figure()
 plt.plot(ks, distance_errors, marker='o', color='red', label='Distance error (m)')
 plt.plot(ks, execution_times, marker='x', color='blue', label='Execution time (sec)')
-plt.xlabel('clustering number')
-plt.ylabel('Distance error (m)')
+plt.xlabel('clustering number', fontsize=17)
+plt.ylabel('Distance error (m)', fontsize=17)
 plt.xticks(ks)
-plt.legend()
+plt.legend(fontsize=17)
 plt.grid(True)
 plt.savefig('./plot.png', dpi=300, bbox_inches='tight')
 #plt.show()
@@ -187,10 +191,10 @@ plt.savefig('./plot.png', dpi=300, bbox_inches='tight')
 plt.figure()
 plt.plot(ks, distance_errors, marker='o', color='red', label='Distance error (m)')
 plt.plot(ks, execution_times, marker='x', color='blue', label='Execution time (sec)')
-plt.xlabel('clustering number')
-plt.ylabel('Execution time (sec)')
+plt.xlabel('clustering number', fontsize=17)
+plt.ylabel('Execution time (sec)', fontsize=17)
 plt.xticks(ks)
-plt.legend()
+plt.legend(fontsize=17)
 plt.grid(True)
 plt.savefig('./plot.png', dpi=300, bbox_inches='tight')
 #plt.show()
